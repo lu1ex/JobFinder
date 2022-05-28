@@ -1,4 +1,4 @@
-package com.example.jobfinder.service;
+package com.example.jobfinder.servicesForDownloaders;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;

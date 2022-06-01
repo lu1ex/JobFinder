@@ -1,6 +1,5 @@
 package com.example.jobfinder.entity;
 
-import com.example.jobfinder.requestBodyModels.SkillRequestBodyModel;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
@@ -29,9 +28,9 @@ public class SkillEntity {
         this.name = name;
     }
 
-    public SkillEntity (SkillRequestBodyModel skillRequestBodyModel) {
+  /*  public SkillEntity (SkillRequestBodyModel skillRequestBodyModel) {
         this.id = UUID.randomUUID().toString();
         this.name = skillRequestBodyModel.getName();
         this.unifiedOffers = new HashSet<>();
-    }
+    }*/
 }

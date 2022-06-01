@@ -8,7 +8,6 @@ import com.example.jobfinder.modelDTO.ContractDetailsDTO;
 import com.example.jobfinder.modelDTO.SeniorityDTO;
 import com.example.jobfinder.modelDTO.SkillDTO;
 import com.example.jobfinder.modelDTO.UnifiedOfferDTO;
-import com.example.jobfinder.requestBodyModels.SkillRequestBodyModel;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -68,7 +67,7 @@ public class MapperService {
     }
      */
 
-    public SkillEntity mapSkillRequestBodyModelToEntity(SkillRequestBodyModel skillRequestBodyModel) {
+  /*  public SkillEntity mapSkillRequestBodyModelToEntity(SkillRequestBodyModel skillRequestBodyModel) {
         return mapper.map(skillRequestBodyModel, SkillEntity.class);
-    }
+    }*/
 }

@@ -4,7 +4,6 @@ import com.example.jobfinder.entity.SkillEntity;
 import com.example.jobfinder.entity.UnifiedOfferEntity;
 import com.example.jobfinder.exceptions.ValueNotFoundException;
 import com.example.jobfinder.repository.SkillEntityRepository;
-import com.example.jobfinder.requestBodyModels.SkillRequestBodyModel;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,7 @@ public class SkillEntityService {
         skillEntityRepository.delete(skillEntity);
     }
 
-    public SkillEntity createSkillEntity(SkillRequestBodyModel skillRequestBodyModel) {
+  /*  public SkillEntity createSkillEntity(SkillRequestBodyModel skillRequestBodyModel) {
         SkillEntity skillEntity = new SkillEntity(skillRequestBodyModel);
         skillEntityRepository.save(skillEntity);
         return skillEntity;
@@ -38,8 +37,8 @@ public class SkillEntityService {
 
     public SkillEntity updateSkillEntityByPut(String id, SkillRequestBodyModel skillRequestBodyModel) {
         SkillEntity skillEntity = getSkillEntityByID(id);
-       /* BeanUtils.copyProperties(skillRequestBodyModel, skillEntity);
-        BeanUtils.copyProperties(skillRequestBodyModel.getUnifiedOffers(), skillEntity.getUnifiedOffers());*/
+       *//* BeanUtils.copyProperties(skillRequestBodyModel, skillEntity);
+        BeanUtils.copyProperties(skillRequestBodyModel.getUnifiedOffers(), skillEntity.getUnifiedOffers());*//*
         //skillEntity.setUnifiedOffers(skillRequestBodyModel.getUnifiedOffers());
 
         return skillEntity;
@@ -49,5 +48,5 @@ public class SkillEntityService {
         SkillEntity skillEntity = getSkillEntityByID(id);
         return null;
 
-    }
+    }*/
 }

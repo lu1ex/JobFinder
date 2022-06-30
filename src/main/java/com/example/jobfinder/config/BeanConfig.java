@@ -5,7 +5,6 @@ import com.example.jobfinder.entity.ContractDetailsEntity;
 import com.example.jobfinder.entity.SeniorityEntity;
 import com.example.jobfinder.entity.SkillEntity;
 import com.example.jobfinder.entity.UnifiedOfferEntity;
-import com.example.jobfinder.enums.Seniority;
 import com.example.jobfinder.enums.TypeOfContract;
 import com.example.jobfinder.facade.justjoinit.EmploymentType;
 import com.example.jobfinder.facade.justjoinit.JustJoinItModel;
@@ -14,13 +13,10 @@ import com.example.jobfinder.facade.noFluffJobs.Location;
 import com.example.jobfinder.facade.noFluffJobs.NoFluffJobsModel;
 import com.example.jobfinder.facade.noFluffJobs.Salary;
 import com.example.jobfinder.facade.pracujPL.PracujPLModel;
-import com.example.jobfinder.modelDTO.SkillDTO;
-import com.example.jobfinder.modelDTO.UnifiedOfferDTO;
 import com.example.jobfinder.repository.SeniorityEntityRepository;
 import com.example.jobfinder.repository.SkillEntityRepository;
 import com.example.jobfinder.services.CurrencyConverterService;
-import com.example.jobfinder.services.HelperService;
-import com.example.jobfinder.servicesForDownloaders.SkillHelper;
+import com.example.jobfinder.services.EmailSenderService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.lang.StringUtils;
@@ -28,9 +24,11 @@ import org.modelmapper.AbstractConverter;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import java.text.DecimalFormat;
 import java.time.*;
@@ -47,8 +45,6 @@ public class BeanConfig {
     private final SkillEntityRepository skillEntityRepository;
     private final SeniorityEntityRepository seniorityEntityRepository;
     private final CurrencyConverterService currencyConverter;
-    private final SkillHelper skillHelper;
-    private final HelperService helperService;
 
     @Bean
     public RestTemplate restTemplate() {
@@ -94,6 +90,8 @@ public class BeanConfig {
                         UnifiedOfferEntity::setContractDetails))
                 .addMappings(m -> m.using(noFluffJobsUrlConverter).map(NoFluffJobsModel::getUrl,
                         UnifiedOfferEntity::setUrl))
+                .addMappings(m -> m.using(noFluffJobsIDgenerator).map(noFluffJobsModel -> noFluffJobsModel,
+                        UnifiedOfferEntity::setUniqueIdentifier))
         ;
 
         /*
@@ -119,6 +117,8 @@ public class BeanConfig {
                         UnifiedOfferEntity::setContractDetails))
                 .addMappings(m -> m.using(justJoinItUrlConverter).map(JustJoinItModel::getId,
                         UnifiedOfferEntity::setUrl))
+                .addMappings(m -> m.using(justJoinIDgenerator).map(justJoinItModel -> justJoinItModel,
+                        UnifiedOfferEntity::setUniqueIdentifier))
         ;
 
         /*
@@ -147,43 +147,67 @@ public class BeanConfig {
                         UnifiedOfferEntity::setSeniority))
                 .addMappings(m -> m.using(pracujPLContractDetailsConverter).map(pracujPLModel -> pracujPLModel,
                         UnifiedOfferEntity::setContractDetails))
+                .addMappings(m -> m.using(pracujPLIDgenerator).map(pracujPLModel -> pracujPLModel,
+                        UnifiedOfferEntity::setUniqueIdentifier))
+
         ;
 
         return modelMapper;
     }
 
-    private final Converter<SkillEntity, Set<UnifiedOfferDTO>> skillEntityUnifiedOffersListConverter =
-            new AbstractConverter<>() {
-                @Override
-                protected Set<UnifiedOfferDTO> convert(SkillEntity skillEntity) {
-                    Set<UnifiedOfferDTO> result = new HashSet<>();
-                    for (UnifiedOfferEntity unifiedOfferEntity : skillEntity.getUnifiedOffers()) {
-                        UnifiedOfferDTO unifiedOfferDTO = new UnifiedOfferDTO();
-                        unifiedOfferDTO.setCompanyName(unifiedOfferEntity.getCompanyName());
-                        unifiedOfferDTO.setTitle(unifiedOfferEntity.getTitle());
+    //NOFLUFFJOBS
 
-                        result.add(unifiedOfferDTO);
-                    }
-                    return result;
+    /*private final Converter<String, Set<SkillEntity>> noFluffJobsSkillConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SkillEntity> convert(String technology) {
+            HashSet<SkillEntity> result = new HashSet<>();
+            if (technology != null) {
+                Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(technology.toUpperCase());
+                if (skillEntity.isPresent()) {
+                    result.add(skillEntity.get());
+                } else {
+                    skillEntityRepository.saveAndFlush(new SkillEntity(technology.toUpperCase()));
                 }
-            };
+            }
+
+            if (result.isEmpty() && technology != null) {
+                Optional<SkillEntity> skillEntityFromRepository = skillEntityRepository.findByName(technology.toUpperCase());
+                result.add(skillEntityFromRepository.get());
+            }
+            return result;
+        }
+    };*/
+    /*private final Converter<List<String>, Set<SkillEntity>> pracujPlSkillConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SkillEntity> convert(List<String> requiredSkills) {
+            HashSet<SkillEntity> result = new HashSet<>();
+
+            for (String requiredSkill : requiredSkills) {
+                for (String skill : listOfSkill) {
+                    if (requiredSkill.contains(skill)) {
+                        result.add(skillEntityRepository.findByName(skill).get());
+                    } else {
+                        result.add(skillEntityRepository.findByName("OTHERS").get());
+                    }
+                }
+            }
+            return result;
+        }
+    };*/
 
     private final Converter<String, Set<SkillEntity>> noFluffJobsSkillConverter = new AbstractConverter<>() {
         @Override
         protected Set<SkillEntity> convert(String technology) {
-            HashSet<SkillEntity> skills = new HashSet<>();
+            HashSet<SkillEntity> result = new HashSet<>();
             if (technology != null) {
-                technology = technology.toUpperCase();
-                if (skillHelper.getSkillsThatHaveAlreadyOccurred().contains(technology)) {
-                    Optional<SkillEntity> skillFromRepository = skillEntityRepository.findByName(technology);
-                    skillFromRepository.ifPresent(skills::add);
+                Optional<SkillEntity> optionalSkill = skillEntityRepository.findByName(technology);
+                if (optionalSkill.isPresent()) {
+                    result.add(optionalSkill.get());
                 } else {
-                    skillHelper.getSkillsThatHaveAlreadyOccurred().add(technology);
-                    SkillEntity skillEntity = new SkillEntity(technology.toUpperCase());
-                    skills.add(skillEntity);
+                    result.add(skillEntityRepository.findByName("OTHERS").get());
                 }
             }
-            return skills;
+            return result;
         }
     };
 
@@ -204,53 +228,147 @@ public class BeanConfig {
     private final Converter<Long, LocalDateTime> noFluffJobsExpirationDateConverter = new AbstractConverter<>() {
         @Override
         protected LocalDateTime convert(Long posted) {
-            LocalDateTime triggerTime =
-                    LocalDateTime.ofInstant(Instant.ofEpochMilli(posted),
-                            TimeZone.getDefault().toZoneId());
-            return triggerTime.plusDays(30);
+            return LocalDateTime.ofInstant(Instant.ofEpochMilli(posted),
+                    TimeZone.getDefault().toZoneId()).plusDays(30);
 
         }
     };
 
+    /*private final Converter<List<String>, Set<SeniorityEntity>> noFluffJobsSeniorityConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SeniorityEntity> convert(List<String> strings) {
+            System.out.println("Seniority: " + LocalDateTime.now());
+            System.out.println(strings.size());
+            HashSet<SeniorityEntity> result = new HashSet<>();
+            for (String s : strings) {
+                Optional<SeniorityEntity> seniorityEntity = seniorityEntityRepository.findBySeniority(s.toUpperCase());
+                if (seniorityEntity.isPresent()) {
+                    result.add(seniorityEntity.get());
+                } else {
+                    System.out.println("coś innego");
+                    if (s.equalsIgnoreCase("Trainee")) {
+                        s = "JUNIOR";
+                    }
+                    if (s.equalsIgnoreCase("Expert")) {
+                        s = "SENIOR";
+                    }
+                    Optional<SeniorityEntity> seniority = seniorityEntityRepository.findBySeniority(s.toUpperCase());
+                    result.add(seniority.get());
+                }
+            }
+            System.out.println("Seniority end: " + LocalDateTime.now());
+            return result;
+        }
+    };*/
     private final Converter<List<String>, Set<SeniorityEntity>> noFluffJobsSeniorityConverter = new AbstractConverter<>() {
         @Override
         protected Set<SeniorityEntity> convert(List<String> strings) {
-            Set<SeniorityEntity> seniorityEntities = new HashSet<>();
-            for (String s : strings) {
-                if (s.equalsIgnoreCase("Expert")) {
-                    Optional<SeniorityEntity> seniorityFromRepository = seniorityEntityRepository.findBySeniority(Seniority.SENIOR);
-                    if (seniorityFromRepository.isPresent()) {
-                        seniorityEntities.add(seniorityFromRepository.get());
-                    } else {
-                        SeniorityEntity seniority = new SeniorityEntity(Seniority.SENIOR);
-                        seniorityEntityRepository.save(seniority);
-                        seniorityEntities.add(seniority);
-                    }
-                }
-                else if (s.equalsIgnoreCase("Trainee")) {
-                    Optional<SeniorityEntity> seniorityFromRepository = seniorityEntityRepository.findBySeniority(Seniority.JUNIOR);
-                    if (seniorityFromRepository.isPresent()) {
-                        seniorityEntities.add(seniorityFromRepository.get());
-                    } else {
-                        SeniorityEntity seniority = new SeniorityEntity(Seniority.JUNIOR);
-                        seniorityEntityRepository.save(seniority);
-                        seniorityEntities.add(seniority);
-                    }
-                }
-                else {
-                    Optional<SeniorityEntity> seniorityFromRepository = seniorityEntityRepository.findBySeniority(Seniority.valueOf(s.toUpperCase()));
-                    if (seniorityFromRepository.isPresent()) {
-                        seniorityEntities.add(seniorityFromRepository.get());
-                    } else {
-                        SeniorityEntity seniority = new SeniorityEntity(Seniority.valueOf(s));
-                        seniorityEntityRepository.save(seniority);
-                        seniorityEntities.add(seniority);
-                    }
-                }
+            System.out.println("#" + LocalDateTime.now());
+            HashSet<SeniorityEntity> result = new HashSet<>();
+            strings.removeIf(s -> s.equals("Trainee") || s.equals("Expert"));
+
+            for (String string : strings) {
+                Optional<SeniorityEntity> seniority = seniorityEntityRepository.findByName(string.toUpperCase());
+                result.add(seniority.get());
             }
-            return seniorityEntities;
+
+            System.out.println("END" + LocalDateTime.now());
+            return result;
         }
     };
+    /*
+    private final Converter<String, Set<SkillEntity>> noFluffJobsSkillConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SkillEntity> convert(String technology) {
+            System.out.println("Skill: " + LocalDateTime.now());
+            HashSet<SkillEntity> result = new HashSet<>();
+            if (technology != null) {
+                Optional<SkillEntity> optionalSkill = skillEntityRepository.findByName(technology);
+                if (optionalSkill.isPresent()) {
+                    result.add(optionalSkill.get());
+                } else {
+                    result.add(skillEntityRepository.findByName("OTHERS").get());
+                }
+            }
+            System.out.println("Skill end: " + LocalDateTime.now());
+            return result;
+        }
+    };
+     */
+    /*private final Converter<List<String>, Set<SeniorityEntity>> noFluffJobsSeniorityConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SeniorityEntity> convert(List<String> strings) {
+            HashSet<SeniorityEntity> result = new HashSet<>();
+            for (String s : strings) {
+                if (s.equalsIgnoreCase("Expert")) {
+                   s = "SENIOR";
+                }
+                if (s.equalsIgnoreCase("Trainee")){
+                    s = "JUNIOR";
+                }
+
+                Optional<SeniorityEntity> seniorityEntity = seniorityEntityRepository.findBySeniority(s);
+                if (seniorityEntity.isPresent()) {
+                    result.add(seniorityEntity.get());
+                } else {
+                    seniorityEntityRepository.saveAndFlush(new SeniorityEntity(s));
+                }
+            }
+            if (result.isEmpty() && !strings.isEmpty()) {
+                for (String s : strings) {
+                    if (s.equalsIgnoreCase("Expert")) {
+                        s = "SENIOR";
+                    }
+                    if (s.equalsIgnoreCase("Trainee")){
+                        s = "JUNIOR";
+                    }
+                    Optional<SeniorityEntity> seniorityEntityFromRepository = seniorityEntityRepository.findBySeniority(s);
+                    result.add(seniorityEntityFromRepository.get());
+                }
+            }
+            return result;
+        }
+    };*/
+
+   /* private final Converter<List<String>, Set<SeniorityEntity>> noFluffJobsSeniorityConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SeniorityEntity> convert(List<String> strings) {
+            HashSet<SeniorityEntity> result = new HashSet<>();
+            for (String s : strings) {
+                Seniority seniority;
+                if (s.equalsIgnoreCase("Expert") || s.equalsIgnoreCase("Senior")) {
+                    seniority = Seniority.SENIOR;
+                } else if (s.equalsIgnoreCase("Trainee") || s.equalsIgnoreCase("Junior")){
+                    seniority = Seniority.JUNIOR;
+                } else  {
+                    seniority = Seniority.MID;
+                }
+
+                Optional<SeniorityEntity> seniorityEntity = seniorityEntityRepository.findBySeniority(seniority);
+                if (seniorityEntity.isPresent()) {
+                    result.add(seniorityEntity.get());
+                } else {
+                    seniorityEntityRepository.saveAndFlush(new SeniorityEntity(seniority));
+                }
+            }
+
+            if (result.isEmpty() && !strings.isEmpty()) {
+                Seniority seniority;
+                for (String s : strings) {
+                    if (s.equalsIgnoreCase("Expert") || s.equalsIgnoreCase("Senior")) {
+                        seniority = Seniority.SENIOR;
+                    } else if (s.equalsIgnoreCase("Trainee") || s.equalsIgnoreCase("Junior")){
+                        seniority = Seniority.JUNIOR;
+                    } else  {
+                        seniority = Seniority.MID;
+                    }
+                    Optional<SeniorityEntity> seniorityEntityFromRepository = seniorityEntityRepository.findBySeniority(seniority);
+                    result.add(seniorityEntityFromRepository.get());
+                }
+            }
+            return result;
+        }
+    };*/
 
     private final Converter<Salary, Set<ContractDetailsEntity>> noFluffJobsContractDetailsConverter = new AbstractConverter<>() {
         @Override
@@ -271,19 +389,24 @@ public class BeanConfig {
         }
     };
 
-    //JOSTJOINIT
+    private final Converter<NoFluffJobsModel, String> noFluffJobsIDgenerator = new AbstractConverter<>() {
+        @Override
+        protected String convert(NoFluffJobsModel noFluffJobsModel) {
+            return UUID.randomUUID().toString();
+        }
+    };
+
+    //JustJoinIT
     private final Converter<String, Set<SeniorityEntity>> justJoinItSeniorityConverter = new AbstractConverter<>() {
         @Override
         protected Set<SeniorityEntity> convert(String s) {
-            Set<SeniorityEntity> seniorityEntities = new HashSet<>();
-            Optional<SeniorityEntity> seniorityFromRepository =
-                    seniorityEntityRepository.findBySeniority(Seniority.valueOf(s.toUpperCase()));
-            if (seniorityFromRepository.isPresent()) {
-                seniorityEntities.add(seniorityFromRepository.get());
-            } else {
-                seniorityEntities.add(new SeniorityEntity(Seniority.valueOf(s.toUpperCase())));
-            }
-            return seniorityEntities;
+            System.out.println("Seniority start" + LocalDateTime.now());
+            Set<SeniorityEntity> result = new HashSet<>();
+            Optional<SeniorityEntity> seniorityFromRepository = seniorityEntityRepository.findByName(s.toUpperCase());
+            seniorityFromRepository.ifPresent(result::add);
+
+            System.out.println("Seniority end" + LocalDateTime.now());
+            return result;
         }
     };
 
@@ -294,21 +417,66 @@ public class BeanConfig {
         }
     };
 
+    /*private final Converter<List<Skill>, Set<SkillEntity>> justJoinItSkillConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SkillEntity> convert(List<Skill> skills) {
+            System.out.println("Skill start" + LocalDateTime.now());
+            HashSet<SkillEntity> result = new HashSet<>();
+            for (Skill skill : skills) {
+                String skillName = skill.getName().toUpperCase();
+
+                Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(skillName);
+                if (skillEntity.isPresent()) {
+                    result.add(skillEntity.get());
+                } else {
+                    skillEntityRepository.saveAndFlush(new SkillEntity(skillName.toUpperCase()));
+                }
+            }
+
+            if (result.isEmpty() && !skills.isEmpty()) {
+                for (Skill skill : skills) {
+                    Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(skill.getName().toUpperCase());
+                    result.add(skillEntity.get());
+                }
+            }
+
+            return result;
+        }
+    };*/
+    /*
+    private final Converter<List<String>, Set<SeniorityEntity>> noFluffJobsSeniorityConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SeniorityEntity> convert(List<String> strings) {
+            System.out.println("#" + LocalDateTime.now());
+            HashSet<SeniorityEntity> result = new HashSet<>();
+            strings.removeIf(s -> s.equals("Trainee"));
+            strings.removeIf(s -> s.equals("Expert"));
+
+            for (String string : strings) {
+                Optional<SeniorityEntity> seniority = seniorityEntityRepository.findBySeniority(string.toUpperCase());
+                result.add(seniority.get());
+            }
+
+            System.out.println("END" + LocalDateTime.now());
+            return result;
+        }
+    };
+     */
     private final Converter<List<Skill>, Set<SkillEntity>> justJoinItSkillConverter = new AbstractConverter<>() {
         @Override
         protected Set<SkillEntity> convert(List<Skill> skills) {
-            Set<SkillEntity> result = new HashSet<>();
+            System.out.println("Skill start" + LocalDateTime.now());
+            HashSet<SkillEntity> result = new HashSet<>();
             for (Skill skill : skills) {
-                String skillName = skill.getName().toUpperCase();
-                if (skillHelper.getSkillsThatHaveAlreadyOccurred().contains(skillName)) {
-                    Optional<SkillEntity> skillFromRepository = skillEntityRepository.findByName(skillName);
-                    skillFromRepository.ifPresent(result::add);
+                Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(skill.getName().toUpperCase());
+                if (skillEntity.isPresent()) {
+                    result.add(skillEntity.get());
                 } else {
-                    skillHelper.getSkillsThatHaveAlreadyOccurred().add(skillName);
-                    SkillEntity skillEntity = new SkillEntity(skillName);
-                    result.add(skillEntity);
+                    result.add(skillEntityRepository.findByName("OTHERS").get());
                 }
             }
+            System.out.println("Skill end" + LocalDateTime.now());
+
             return result;
         }
     };
@@ -317,6 +485,8 @@ public class BeanConfig {
             new AbstractConverter<>() {
                 @Override
                 protected Set<ContractDetailsEntity> convert(List<EmploymentType> employmentTypes) {
+                    System.out.println("CD start" + LocalDateTime.now());
+
                     Set<ContractDetailsEntity> contractDetails = new HashSet<>();
                     double salaryFrom;
                     double salaryTo;
@@ -347,6 +517,9 @@ public class BeanConfig {
                                     salaryFrom, salaryTo));
                         }
                     }
+                    System.out.println("CD end" + LocalDateTime.now());
+
+
                     return contractDetails;
                 }
             };
@@ -357,6 +530,14 @@ public class BeanConfig {
             return "https://justjoin.it/offers/" + source;
         }
     };
+
+    private final Converter<JustJoinItModel, String> justJoinIDgenerator = new AbstractConverter<>() {
+        @Override
+        protected String convert(JustJoinItModel justJoinItModel) {
+            return UUID.randomUUID().toString();
+        }
+    };
+
 
     //PRACUJ.PL
 
@@ -376,31 +557,45 @@ public class BeanConfig {
         }
     };
 
+    /*
+    private final Converter<String, Set<SkillEntity>> noFluffJobsSkillConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SkillEntity> convert(String technology) {
+            HashSet<SkillEntity> result = new HashSet<>();
+            if (technology != null) {
+                Optional<SkillEntity> optionalSkill = skillEntityRepository.findByName(technology);
+                if (optionalSkill.isPresent()) {
+                    result.add(optionalSkill.get());
+                } else {
+                    result.add(skillEntityRepository.findByName("OTHERS").get());
+                }
+            }
+            return result;
+        }
+    };
+
+     */
     private final Converter<String, Set<SeniorityEntity>> pracujPLSeniorityConverter = new AbstractConverter<>() {
         @Override
         protected Set<SeniorityEntity> convert(String employmentLevel) {
+
+            System.out.println("pracuj start seniority:" + LocalDateTime.now());
             String[] senioritiesFromPracujPLModel = employmentLevel.split(",");
-            Set<SeniorityEntity> seniorityEntities = new HashSet<>();
+            HashSet<SeniorityEntity> seniorities = new HashSet<>();
             for (String s : senioritiesFromPracujPLModel) {
-                Pattern pattern = Pattern.compile("\\([A-Z|a-z]+");
-                Matcher matcher = pattern.matcher(s);
-                String employmentType = "";
-                if (matcher.find()) {
-                    employmentType = matcher.group(0);
+                if (s.toUpperCase().contains("MID")) {
+                    s = "MID";
+                } else if (s.toUpperCase().contains("JUNIOR")) {
+                    s = "JUNIOR";
+                } else {
+                    s = "SENIOR";
                 }
-                employmentType = employmentType.replaceAll("\\(", "").replaceAll(" ", "").toUpperCase();
-                if (!employmentType.equals("")) {
-                    Optional<SeniorityEntity> seniorityFromRepository = seniorityEntityRepository.findBySeniority(Seniority.valueOf(employmentType));
-                    if (seniorityFromRepository.isPresent()) {
-                        seniorityEntities.add(seniorityFromRepository.get());
-                    } else {
-                        SeniorityEntity seniority = new SeniorityEntity(Seniority.valueOf(employmentType));
-                        seniorityEntityRepository.saveAndFlush(seniority);
-                        seniorityEntities.add(seniority);
-                    }
-                }
+                Optional<SeniorityEntity> seniorityEntity = seniorityEntityRepository.findByName(s);
+                seniorityEntity.ifPresent(seniorities::add);
             }
-            return seniorityEntities;
+
+            System.out.println("pracuj end seniority:" + LocalDateTime.now());
+            return seniorities;
         }
     };
 
@@ -409,6 +604,8 @@ public class BeanConfig {
         @SneakyThrows
         @Override
         protected Set<ContractDetailsEntity> convert(PracujPLModel pracujPLModel) {
+
+            System.out.println("pracuj start CD:" + LocalDateTime.now());
             Set<ContractDetailsEntity> contractDetails = new HashSet<>();
             String salaryFromStringValue = "0";
             String salaryToStringValue;
@@ -457,29 +654,62 @@ public class BeanConfig {
                     contractDetails.add(new ContractDetailsEntity(TypeOfContract.UOP, salaryFrom, salaryTo));
                 }
             }
+
+            System.out.println("pracuj end cd:" + LocalDateTime.now());
             return contractDetails;
         }
     };
 
-    private final Converter<List<String>, Set<SkillEntity>> pracujPlSkillConverter = new AbstractConverter<>() {
+    /*private final Converter<List<String>, Set<SkillEntity>> pracujPlSkillConverter = new AbstractConverter<>() {
         @Override
         protected Set<SkillEntity> convert(List<String> objects) {
             HashSet<SkillEntity> skills = new HashSet<>();
             for (String exptectedTechnology : objects) {
                 if (exptectedTechnology != null) {
                     exptectedTechnology = exptectedTechnology.toUpperCase();
-                    if (skillHelper.getSkillsThatHaveAlreadyOccurred().contains(exptectedTechnology)) {
-                        Optional<SkillEntity> skillFromRepository = skillEntityRepository.findByName(exptectedTechnology);
-                        skillFromRepository.ifPresent(skills::add);
+                    Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(exptectedTechnology);
+                    if (skillEntity.isPresent()) {
+                        skills.add(skillEntity.get());
                     } else {
-                        skillHelper.getSkillsThatHaveAlreadyOccurred().add(exptectedTechnology);
-                        SkillEntity skillEntity = new SkillEntity(exptectedTechnology);
-                        skills.add(skillEntity);
+                        skillEntityRepository.saveAndFlush(new SkillEntity(exptectedTechnology));
                     }
                 }
+            }
 
+            if (skills.isEmpty() && !objects.isEmpty()) {
+                for (String object : objects) {
+                    Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(object);
+                    skills.add(skillEntity.get());
+                }
             }
             return skills;
+        }
+    };
+*/
+    private final Converter<List<String>, Set<SkillEntity>> pracujPlSkillConverter = new AbstractConverter<>() {
+        @Override
+        protected Set<SkillEntity> convert(List<String> requiredSkills) {
+            System.out.println("pracuj start:" + LocalDateTime.now());
+            HashSet<SkillEntity> result = new HashSet<>();
+
+            for (String requiredSkill : requiredSkills) {
+                Optional<SkillEntity> skillEntity = skillEntityRepository.findByName(requiredSkill);
+                if (skillEntity.isPresent()) {
+                    result.add(skillEntity.get());
+                } else {
+                    result.add(skillEntityRepository.findByName("OTHERS").get());
+                }
+            }
+
+            System.out.println("pracuj end:" + LocalDateTime.now());
+            return result;
+        }
+    };
+
+    private final Converter<PracujPLModel, String> pracujPLIDgenerator = new AbstractConverter<>() {
+        @Override
+        protected String convert(PracujPLModel pracujPLModel) {
+            return UUID.randomUUID().toString();
         }
     };
 

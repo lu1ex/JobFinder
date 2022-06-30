@@ -1,9 +1,6 @@
 package com.example.jobfinder.entity;
 
-import com.example.jobfinder.enums.Seniority;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -12,24 +9,32 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Data
+@Getter
+@Setter
 @Table(name = "Seniority")
 @AllArgsConstructor
 @NoArgsConstructor
 public class SeniorityEntity {
-    @Id @GeneratedValue(generator="system-uuid")
+    @Id
+    @GeneratedValue(generator="system-uuid")
     @GenericGenerator(name="system-uuid", strategy = "uuid")
     private String id;
-    @Enumerated(EnumType.STRING)
-    private Seniority seniority;
+    private String name;
     @ManyToMany(mappedBy = "seniority")
     private Set<UnifiedOfferEntity> unifiedOffers = new HashSet<>();
+    @ManyToMany(mappedBy = "ownedSeniority")
+    private Set<UserPreferencesEntity> usersPreferences = new HashSet<>();
 
-    public SeniorityEntity(Seniority seniority) {
+    public SeniorityEntity(String  name) {
         this.id = UUID.randomUUID().toString();
-        this.seniority = seniority;
+        this.name = name;
         this.unifiedOffers = new HashSet<>();
     }
 
-
+    @Override
+    public String toString() {
+        return "SeniorityEntity{" +
+                ", seniority='" + name + '\'' +
+                '}';
+    }
 }

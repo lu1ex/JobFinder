@@ -9,4 +9,6 @@ public class UserRequestBodyModel {
     private String login;
     private String password;
     private String email;
+    private boolean activeAccount;
+    private boolean subscriber;
 }

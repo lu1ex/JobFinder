@@ -22,15 +22,18 @@ public class SkillEntity {
     private String name;
     @ManyToMany(mappedBy = "skills")
     private Set<UnifiedOfferEntity> unifiedOffers = new HashSet<>();
+    @ManyToMany(mappedBy = "ownedSkills")
+    private Set<UserPreferencesEntity> usersPreferences = new HashSet<>();
 
     public SkillEntity(String name) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
     }
 
-  /*  public SkillEntity (SkillRequestBodyModel skillRequestBodyModel) {
-        this.id = UUID.randomUUID().toString();
-        this.name = skillRequestBodyModel.getName();
-        this.unifiedOffers = new HashSet<>();
-    }*/
+    @Override
+    public String toString() {
+        return "SkillEntity{" +
+                ", name='" + name +
+                '}';
+    }
 }

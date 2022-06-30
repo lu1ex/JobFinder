@@ -7,7 +7,6 @@ import com.example.jobfinder.entity.UnifiedOfferEntity;
 import com.example.jobfinder.exceptions.ValueNotFoundException;
 import com.example.jobfinder.repository.UnifedOfferRepository;
 import com.example.jobfinder.requestBodyModels.UnifiedOfferRequestBodyModel;
-import com.example.jobfinder.servicesForDownloaders.JobFinderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -15,17 +14,12 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class UnifiedOfferService {
     private final MapperService mapperService;
-    private final JobFinderService jobFinderService;
     private final UnifedOfferRepository unifedOfferRepository;
 
     public UnifiedOfferEntity createEntity(UnifiedOfferRequestBodyModel unifiedOfferRequestBodyModel) {
@@ -45,7 +39,7 @@ public class UnifiedOfferService {
     }
 
     public Set<UnifiedOfferEntity> getAllEntities() {
-        return (Set<UnifiedOfferEntity>) unifedOfferRepository.findAll();
+        return new HashSet<>(unifedOfferRepository.findAll());
     }
 
     public void deleteEntityById(String id) {
@@ -74,39 +68,4 @@ public class UnifiedOfferService {
         });
         return unifiedOfferEntity;
     }
-
-
-
-
-
-
-
-
-
-    public List<UnifiedOfferEntity> getOffersFromServices() throws ExecutionException, InterruptedException {
-        return jobFinderService.getAllOffers();
-    }
-
-    public void deleteExpiredOffersFromDB(List<UnifiedOfferEntity> unifiedOfferEntityList) {
-        List<UnifiedOfferEntity> offersToDelete = new ArrayList<>();
-        for (UnifiedOfferEntity unifiedOfferEntity : unifiedOfferEntityList) {
-            if (unifiedOfferEntity.getExpirationDate().isAfter(LocalDateTime.now())) {
-                offersToDelete.add(unifiedOfferEntity);
-            }
-        }
-        unifedOfferRepository.deleteAll(offersToDelete);
-    }
-
-    public void addNewOffersToDB() throws ExecutionException, InterruptedException {
-        List<UnifiedOfferEntity> listOfOffersToAdd = new ArrayList<>();
-        for (UnifiedOfferEntity offer : getOffersFromServices()) {
-            if (!unifedOfferRepository.existsByCityAndStreetAndTitleAndAndCompanyNameAndRemoteAndUrl(
-                    offer.getCity(), offer.getStreet(), offer.getTitle(), offer.getCompanyName(),
-                    offer.isRemote(), offer.getUrl())) {
-                listOfOffersToAdd.add(offer);
-            }
-        }
-        unifedOfferRepository.saveAllAndFlush(listOfOffersToAdd);
-    }
-
 }

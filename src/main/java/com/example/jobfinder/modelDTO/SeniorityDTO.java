@@ -1,9 +1,13 @@
 package com.example.jobfinder.modelDTO;
 
 import com.example.jobfinder.enums.Seniority;
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class SeniorityDTO {
-    private Seniority seniority;
+    private String name;
 }

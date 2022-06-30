@@ -5,6 +5,7 @@ import com.example.jobfinder.modelDTO.SeniorityDTO;
 import com.example.jobfinder.modelDTO.SkillDTO;
 import lombok.Data;
 
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -18,6 +19,7 @@ public class UnifiedOfferRequestBodyModel {
     private String url;
     private boolean remote;
     private boolean remoteRecruitment;
+    @NotNull
     private Set<SkillDTO> skills;
     private Set<ContractDetailsDTO> contractDetails;
     private Set<SeniorityDTO> seniority;

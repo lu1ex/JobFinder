@@ -15,8 +15,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ContractDetailsEntity {
-    @Id @GeneratedValue(generator="system-uuid")
-    @GenericGenerator(name="system-uuid", strategy = "uuid")
+    @Id
+    @GeneratedValue(generator="system-uuid")
+    @GenericGenerator(name="system-uuid", strategy = "uuid2")
     @Column(name = "id", nullable = false)
     private String id;
     @Enumerated(EnumType.STRING)
@@ -26,10 +27,20 @@ public class ContractDetailsEntity {
     @ManyToMany(mappedBy = "contractDetails")
     private Set<UnifiedOfferEntity> unifiedOffers = new HashSet<>();
 
+
     public ContractDetailsEntity(TypeOfContract typeOfContract, double salaryFrom, double salaryTo) {
         this.id = UUID.randomUUID().toString();
         this.typeOfContract = typeOfContract;
         this.salaryFrom = salaryFrom;
         this.salaryTo = salaryTo;
+    }
+
+    @Override
+    public String toString() {
+        return "ContractDetailsEntity{" +
+                ", typeOfContract=" + typeOfContract +
+                ", salaryFrom=" + salaryFrom +
+                ", salaryTo=" + salaryTo +
+                '}';
     }
 }

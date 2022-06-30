@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Finder - Rejestracja</title>
+
+    <link rel="stylesheet" type="text/css" th:href="@{../css/style.css}"  />
+</head>
+<body>
+
+<nav class="site-nav">
+    <div id="logo">
+        <a th:href="@{/home}" class="link"/><img th:src="@{../img/Logo.png}" alt="Logo" width="300" height="52"></a>
+    </div>
+    <button class="side-menu-button"><img th:src="@{../img/menuIcon.png}" alt="Menu" width="40" height="40"></button>
+    <aside class="side-menu">
+        <ul>
+            <li>
+                <a th:href="@{/service/preferences}">Preferencje</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Statystyki</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Subskrypcja</a>
+            </li>
+        </ul>
+    </aside>
+</nav>
+
+<div id="mainContainer">
+    <div id="registerForm">
+        <form class="formularzszeroki" action="#" th:action="@{/register/execute}" method="post" th:object="${registerForm}">
+            <input th:class="input" th:field="*{name}" placeholder="Imię" />
+            <br />
+            <input th:class="input" th:field="*{surname}" placeholder="Nazwisko"/>
+            <br />
+            <input th:class="input" th:field="*{login}" placeholder="Login"/>
+            <br />
+            <input th:class="input" type="password" th:field="*{password}" placeholder="Hasło"/>
+            <br />
+            <input th:class="input" th:field="*{email}" placeholder="E-mail"/>
+            <br />
+            <button class="button" id="submit" type="submit">Zarejestruj</button>
+        </form>
+        <div id="errors" th:if="${errors != null}">
+            <p th:text="${errors}"></p>
+        </div>
+        Zakładając konto akceptujesz <a th:href="@{/register}" class="link">Regulamin</a>
+        <br/>
+        <br/>
+        Posiadasz już konto? <a th:href="@{/login}" class="link">Zaloguj się</a>
+    </div>
+</div>
+
+<div id="footer">
+    <p> 2022 © JobFinder by Rafał Suski</p>
+</div>
+
+
+
+
+
+</body>
+</html>

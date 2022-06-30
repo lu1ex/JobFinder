@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Finder</title>
+
+    <link rel="stylesheet" type="text/css" th:href="@{../css/style.css}"  />
+</head>
+<body>
+<nav class="site-nav">
+    <div id="logo">
+        <a th:href="@{/home}" class="link"/><img th:src="@{../img/Logo.png}" alt="Logo" width="300" height="52"></a>
+    </div>
+    <button class="side-menu-button"><img th:src="@{../img/menuIcon.png}" alt="Menu" width="40" height="40"></button>
+    <aside class="side-menu">
+        <ul>
+            <li>
+                <a th:href="@{/service/preferences}">Preferencje</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Statystyki</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Subskrypcja</a>
+            </li>
+        </ul>
+    </aside>
+</nav>
+
+<div id="mainContainer">
+    Witaj w JobFinder</br> Miejscu gdzie oferty pracy czekają na Ciebie... Wystarczy tylko kilka kliknięć.</br>
+
+    </br>
+    </br>
+    <button class="button"><a th:href="@{/login}" class="link">Kliknij poniżej aby rozpocząć</a></button>
+    </br>
+    </br>
+    Tylko dziś do naszej bazy ofert dołączyło XXX ogłoszeń.
+</div>
+
+<div id="footer">
+    <p> 2022 © JobFinder by Rafał Suski</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Finder</title>
+
+    <link rel="stylesheet" type="text/css" th:href="@{../css/style.css}"/>
+</head>
+<body>
+<nav class="site-nav">
+    <div id="logo">
+        <a th:href="@{/home}" class="link"/><img th:src="@{../img/Logo.png}" alt="Logo" width="300" height="52"></a>
+    </div>
+    <button class="side-menu-button"><img th:src="@{../img/menuIcon.png}" alt="Menu" width="40" height="40"></button>
+    <aside class="side-menu">
+        <ul>
+            <li>
+                <a th:href="@{/service/preferences}">Preferencje</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Statystyki</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Subskrypcja</a>
+            </li>
+        </ul>
+    </aside>
+</nav>
+
+<div id="mainContainer">
+
+    <form th:action="@{/service/submit}" method="post" th:object="${userPreferencesForm}">
+        <input type="text" class="input" th:field="*{city}" name="city" autofocus="autofocus" placeholder="Miasto"/><br/>
+        <input type=checkbox class="input" value="true" th:field="*{remote}" name="remote">Praca zdalna?</input>
+        <input type=checkbox class="input" value="true"  th:field="*{remoteRecruitment}" name="remoteRecruitment" >RR online?</input><br/>
+        <input th:class="input" th:field="*{salaryMin}" placeholder="salaryMin"/><br/>
+        <input type="text" class="input" th:field="*{typeOfContract}" name="typeOfContract" placeholder="UoP / B2B"/><br/>
+        <input type="text" class="input" th:field="*{seniority}" name="seniority" placeholder="JUNIOR / MID / SENIOR"/><br/>
+        <input type="text" class="input" th:field="*{skill}" name="skill" placeholder="Technologia"/><br/>
+
+        <br />
+        <h4>Skille</h4>
+        <ul>
+            <li th:each="drink : ${selectableDrinks}">
+                <div>
+                    <input type="checkbox" th:field="*{drinks}" th:value="${drink.name}">
+                    <label th:text="${drink.name}"></label>
+                </div>
+            </li>
+        </ul>
+        <br />
+        <button class="button" type="submit">Prześlij</button><br/>
+    </form>
+
+
+
+
+
+
+   <form th:action="@{/test2}" method="post" th:object="${person}">
+       <ul>
+           <li th:each="drink : ${selectableDrinks}">
+               <div>
+                   <input type="checkbox" th:field="*{drinks}" th:value="${drink.name}">
+                   <label th:text="${drink.name}"></label>
+               </div>
+           </li>
+       </ul>
+        <div>
+            <button type="submit">Submit</button>
+        </div>
+   </form>
+</div>
+
+<div id="footer">
+    <p> 2022 © StoreEverything</p>
+</div>
+
+</body>
+</html>

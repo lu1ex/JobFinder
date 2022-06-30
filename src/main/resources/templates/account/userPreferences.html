@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Finder - Ustawienia</title>
+
+    <link rel="stylesheet" type="text/css" th:href="@{../css/style.css}"/>
+</head>
+<body>
+
+<nav class="site-nav">
+    <div id="logo">
+        <a th:href="@{/home}" class="link"/><img th:src="@{../img/Logo.png}" alt="Logo" width="300" height="52"></a>
+    </div>
+    <button class="side-menu-button"><img th:src="@{../img/menuIcon.png}" alt="Menu" width="40" height="40"></button>
+    <aside class="side-menu">
+        <ul>
+            <li>
+                <a th:href="@{/service/preferences}">Preferencje</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Statystyki</a>
+            </li>
+            <li>
+                <a th:href="@{service/userStats}">Subskrypcja</a>
+            </li>
+        </ul>
+    </aside>
+</nav>
+
+<div id="mainContainer">
+    <form th:action="@{/service/submit}" method="post" th:object="${userPreferencesForm}">
+        <div id="contractDetails">
+            <div id="skills">
+                <table>
+                    <tr th:each="skill : ${selectableSkills}">
+                        <td>
+                            <div>
+                                <input type="checkbox" th:field="*{ownedSkills}" th:value="${skill.name}">
+                                <label th:text="${skill.name}"></label>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <input type="text" class="input" th:field="*{city}" name="city" autofocus="autofocus"
+                   placeholder="Miasto"/><br/>
+            <input type=checkbox class="input" value="true" th:field="*{remote}" name="remote">Praca zdalna?</input>
+            <input type=checkbox class="input" value="true" th:field="*{remoteRecruitment}" name="remoteRecruitment">RR
+            online?</input><br/>
+            <input th:class="input" th:field="*{salaryMin}" placeholder="salaryMin"/><br/>
+            <div id="typeOfContract">
+                <table>
+                    <tr th:each="typeOfContract : ${selectableTypeOfContract}">
+                        <td>
+                            <div>
+                                <input type="checkbox" th:field="*{requiredTypeOfContract}" th:value="${typeOfContract}">
+                                <label th:text="${typeOfContract}"></label>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div id="seniority">
+                <table>
+                    <tr th:each="seniority : ${selectableSeniority}">
+                        <td>
+                            <div>
+                                <input type="checkbox" th:field="*{ownedSeniority}" th:value="${seniority.name}">
+                                <label th:text="${seniority.name}"></label>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <button class="button" type="submit">Prześlij</button>
+        <br/>
+    </form>
+</div>
+
+<div id="footer">
+    <p> 2022 © JobFinder by Rafał Suski</p>
+</div>
+
+
+</body>
+</html>
